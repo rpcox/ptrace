@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+# make the sys_call() function for ptrace samples
+# usage: parse_call syscall_table
+#
+use 5.014;
+
+say "const char* sys_call(long call) {\n  switch(call) {\n";
+
+while (<>) {
+  next if /^#/;
+  chomp;
+
+  if ( /(\d+)\s+(\w+)\s+([\w_]+)\s+/ ) {
+    my ( $n, $abi, $name ) = ( $1, $2, $3 );
+    next if $abi =~ /x32/;
+
+    my $string = "  #ifdef SYS_$name";
+    my $diff = 40 - length($string);
+
+    printf '%s%s%s0x%04X%s', "  #ifdef SYS_$name", ' ' x $diff, "// $n, ", $n, "\n";
+    say "    case SYS_$name: return \"sys_$name\";";
+    say "  #endif\n"
+  }
+}
+
+say "  default:\n    return \"unknown\";\n  }\n}";
